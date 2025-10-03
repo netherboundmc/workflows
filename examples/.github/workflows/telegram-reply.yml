@@ -1,0 +1,13 @@
+name: Telegram commit notification
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  call-telegram:
+    uses: netherboundmc/workflows/.github/workflows/telegram-reply.yml@main
+    secrets:
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
