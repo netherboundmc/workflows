@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Get commit info
         id: commit
@@ -20,13 +22,18 @@ jobs:
           COMMIT_HASH=$(git rev-parse HEAD)
           SHORT_HASH=${COMMIT_HASH:0:7}
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          LINES_PLUS=$(git show --numstat $COMMIT_HASH | awk '{added+=$1; removed+=$2} END {print added}')
-          LINES_MINUS=$(git show --numstat $COMMIT_HASH | awk '{added+=$1; removed+=$2} END {print removed}')
+
+          LINES_PLUS=$(git show --numstat $COMMIT_HASH | awk '{if($1!="-" && $2!="-"){added+=$1}} END {print added+0}')
+          LINES_MINUS=$(git show --numstat $COMMIT_HASH | awk '{if($1!="-" && $2!="-"){removed+=$2}} END {print removed+0}')
+
+          COMMIT_MSG=$(git log -1 --pretty=%B $COMMIT_HASH | sed 's/"/\\"/g')
+
           echo "commit_hash=$COMMIT_HASH" >> $GITHUB_ENV
           echo "short_hash=$SHORT_HASH" >> $GITHUB_ENV
           echo "branch_name=$BRANCH_NAME" >> $GITHUB_ENV
           echo "lines_plus=$LINES_PLUS" >> $GITHUB_ENV
           echo "lines_minus=$LINES_MINUS" >> $GITHUB_ENV
+          echo "commit_msg=$COMMIT_MSG" >> $GITHUB_ENV
 
       - name: Send commit message to Telegram
         uses: appleboy/telegram-action@v1.0.1
@@ -37,7 +44,7 @@ jobs:
             🚀 [${{ github.actor }}](https://github.com/${{ github.actor }}) authored a commit to `${{ github.repository }}` (`${{ env.branch_name }}` branch)
 
             🔗 Commit: `${{ env.short_hash }}`
-            📝 Message: `${{ github.event.commits[0].message }}`
+            📝 Message: `${{ env.commit_msg }}`
 
             ➕ `${{ env.lines_plus }}`  ➖ `${{ env.lines_minus }}`
           format: markdown
